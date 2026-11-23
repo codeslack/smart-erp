@@ -7,6 +7,7 @@ import { TenantOnboarding } from '@/features/onboarding/views/TenantOnboarding';
 import { DashboardOverview } from '@/features/dashboard/views/DashboardOverview';
 import { CustomerList } from '@/features/customers';
 import { SupplierList } from '@/features/suppliers';
+import { ProductList, CategoryList } from '@/features/products';
 import { PlaceholderPage } from '@/components/common/PlaceholderPage';
 import NotFound from '@/components/NotFound';
 
@@ -29,26 +30,8 @@ export const AppRoutes: React.FC = () => {
             {/* Master Data */}
             <Route path="/customers" element={<CustomerList />} />
             <Route path="/suppliers" element={<SupplierList />} />
-            <Route
-              path="/products"
-              element={
-                <PlaceholderPage
-                  title="Products & Inventory"
-                  subtitle="Product catalog, SKUs, pricing, categories, and inventory stock balances."
-                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Products' }]}
-                />
-              }
-            />
-            <Route
-              path="/categories"
-              element={
-                <PlaceholderPage
-                  title="Product Categories"
-                  subtitle="Hierarchical product classification and taxonomy."
-                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Categories' }]}
-                />
-              }
-            />
+            <Route path="/products" element={<ProductList />} />
+            <Route path="/categories" element={<CategoryList />} />
             <Route
               path="/brands"
               element={
