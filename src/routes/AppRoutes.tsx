@@ -8,6 +8,7 @@ import { DashboardOverview } from '@/features/dashboard/views/DashboardOverview'
 import { CustomerList } from '@/features/customers';
 import { SupplierList } from '@/features/suppliers';
 import { ProductList, CategoryList } from '@/features/products';
+import { SalesList, SalesOrderList, SalesQuotationList } from '@/features/sales';
 import { PlaceholderPage } from '@/components/common/PlaceholderPage';
 import NotFound from '@/components/NotFound';
 
@@ -74,36 +75,9 @@ export const AppRoutes: React.FC = () => {
             />
 
             {/* Sales */}
-            <Route
-              path="/sales-quotations"
-              element={
-                <PlaceholderPage
-                  title="Sales Quotations"
-                  subtitle="Draft, send, approve, and convert sales quotations into orders."
-                  breadcrumbs={[{ label: 'Sales' }, { label: 'Quotations' }]}
-                />
-              }
-            />
-            <Route
-              path="/sales-orders"
-              element={
-                <PlaceholderPage
-                  title="Sales Orders"
-                  subtitle="Confirmed customer orders and fulfillment queues."
-                  breadcrumbs={[{ label: 'Sales' }, { label: 'Orders' }]}
-                />
-              }
-            />
-            <Route
-              path="/sales"
-              element={
-                <PlaceholderPage
-                  title="Sales Invoices"
-                  subtitle="Customer invoices, accounting postings, and delivery confirmations."
-                  breadcrumbs={[{ label: 'Sales' }, { label: 'Invoices' }]}
-                />
-              }
-            />
+            <Route path="/sales-quotations" element={<SalesQuotationList />} />
+            <Route path="/sales-orders" element={<SalesOrderList />} />
+            <Route path="/sales" element={<SalesList />} />
             <Route
               path="/sales-returns"
               element={
