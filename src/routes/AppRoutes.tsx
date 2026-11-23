@@ -6,6 +6,7 @@ import { Login } from '@/features/auth/views/Login';
 import { TenantOnboarding } from '@/features/onboarding/views/TenantOnboarding';
 import { DashboardOverview } from '@/features/dashboard/views/DashboardOverview';
 import { CustomerList } from '@/features/customers';
+import { SupplierList } from '@/features/suppliers';
 import { PlaceholderPage } from '@/components/common/PlaceholderPage';
 import NotFound from '@/components/NotFound';
 
@@ -27,16 +28,7 @@ export const AppRoutes: React.FC = () => {
 
             {/* Master Data */}
             <Route path="/customers" element={<CustomerList />} />
-            <Route
-              path="/suppliers"
-              element={
-                <PlaceholderPage
-                  title="Suppliers"
-                  subtitle="Manage suppliers, vendor codes, payment terms, and opening balances."
-                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Suppliers' }]}
-                />
-              }
-            />
+            <Route path="/suppliers" element={<SupplierList />} />
             <Route
               path="/products"
               element={
