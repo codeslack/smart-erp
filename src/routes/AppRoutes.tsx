@@ -11,6 +11,8 @@ import { ProductList, CategoryList } from '@/features/products';
 import { SalesList, SalesOrderList, SalesQuotationList } from '@/features/sales';
 import { PurchaseOrderList, PurchaseInvoiceList, PurchaseReturnList } from '@/features/purchases';
 import { ChartOfAccountsView, JournalEntriesView, PaymentListView, FinancialReportsView } from '@/features/accounting';
+import { UserListView } from '@/features/users';
+import { SettingsView } from '@/features/settings';
 import { PlaceholderPage } from '@/components/common/PlaceholderPage';
 import NotFound from '@/components/NotFound';
 
@@ -114,26 +116,8 @@ export const AppRoutes: React.FC = () => {
             <Route path="/reports" element={<FinancialReportsView />} />
 
             {/* System */}
-            <Route
-              path="/employees"
-              element={
-                <PlaceholderPage
-                  title="Users & Access Control"
-                  subtitle="User directory, roles, and granular tenant permissions."
-                  breadcrumbs={[{ label: 'System' }, { label: 'Users & RBAC' }]}
-                />
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <PlaceholderPage
-                  title="System Settings"
-                  subtitle="Organization profile, financial years, numbering schemes, and preferences."
-                  breadcrumbs={[{ label: 'System' }, { label: 'Settings' }]}
-                />
-              }
-            />
+            <Route path="/employees" element={<UserListView />} />
+            <Route path="/settings" element={<SettingsView />} />
           </Route>
         </Route>
 
