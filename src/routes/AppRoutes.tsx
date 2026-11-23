@@ -8,6 +8,7 @@ import { DashboardOverview } from '@/features/dashboard/views/DashboardOverview'
 import { CustomerList } from '@/features/customers';
 import { SupplierList } from '@/features/suppliers';
 import { ProductList, CategoryList } from '@/features/products';
+import { WarehouseList, BrandList, UnitList, PaymentTermList } from '@/features/master-data';
 import { SalesList, SalesOrderList, SalesQuotationList } from '@/features/sales';
 import { PurchaseOrderList, PurchaseInvoiceList, PurchaseReturnList } from '@/features/purchases';
 import { ChartOfAccountsView, JournalEntriesView, PaymentListView, FinancialReportsView } from '@/features/accounting';
@@ -37,46 +38,10 @@ export const AppRoutes: React.FC = () => {
             <Route path="/suppliers" element={<SupplierList />} />
             <Route path="/products" element={<ProductList />} />
             <Route path="/categories" element={<CategoryList />} />
-            <Route
-              path="/brands"
-              element={
-                <PlaceholderPage
-                  title="Brands"
-                  subtitle="Manufacturer and brand classifications."
-                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Brands' }]}
-                />
-              }
-            />
-            <Route
-              path="/units"
-              element={
-                <PlaceholderPage
-                  title="Units of Measurement"
-                  subtitle="Base measurement units and conversion factors."
-                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Units' }]}
-                />
-              }
-            />
-            <Route
-              path="/warehouses"
-              element={
-                <PlaceholderPage
-                  title="Warehouses"
-                  subtitle="Storage facilities, locations, and inventory distribution hubs."
-                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Warehouses' }]}
-                />
-              }
-            />
-            <Route
-              path="/payment-terms"
-              element={
-                <PlaceholderPage
-                  title="Payment Terms"
-                  subtitle="Credit periods, due dates, and default invoicing terms."
-                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Payment Terms' }]}
-                />
-              }
-            />
+            <Route path="/brands" element={<BrandList />} />
+            <Route path="/units" element={<UnitList />} />
+            <Route path="/warehouses" element={<WarehouseList />} />
+            <Route path="/payment-terms" element={<PaymentTermList />} />
 
             {/* Sales */}
             <Route path="/sales-quotations" element={<SalesQuotationList />} />
