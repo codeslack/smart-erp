@@ -289,13 +289,13 @@ export const DashboardOverview: React.FC = () => {
           <div className="overflow-x-auto">
             <Table hoverable>
               <TableHead>
-                <tr>
+                <TableRow>
                   <TableHeadCell>Transaction</TableHeadCell>
                   <TableHeadCell>Details</TableHeadCell>
                   <TableHeadCell>Amount</TableHeadCell>
                   <TableHeadCell>Status</TableHeadCell>
                   <TableHeadCell>Time</TableHeadCell>
-                </tr>
+                </TableRow>
               </TableHead>
               <TableBody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {recentActivities.map((act) => (
