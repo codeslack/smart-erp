@@ -10,6 +10,7 @@ import { SupplierList } from '@/features/suppliers';
 import { ProductList, CategoryList } from '@/features/products';
 import { SalesList, SalesOrderList, SalesQuotationList } from '@/features/sales';
 import { PurchaseOrderList, PurchaseInvoiceList, PurchaseReturnList } from '@/features/purchases';
+import { ChartOfAccountsView, JournalEntriesView, PaymentListView, FinancialReportsView } from '@/features/accounting';
 import { PlaceholderPage } from '@/components/common/PlaceholderPage';
 import NotFound from '@/components/NotFound';
 
@@ -107,46 +108,10 @@ export const AppRoutes: React.FC = () => {
             />
 
             {/* Accounting */}
-            <Route
-              path="/accounting/chart-of-accounts"
-              element={
-                <PlaceholderPage
-                  title="Chart of Accounts"
-                  subtitle="General ledger structure, account hierarchy, and financial groups."
-                  breadcrumbs={[{ label: 'Accounting' }, { label: 'Chart of Accounts' }]}
-                />
-              }
-            />
-            <Route
-              path="/accounting/journal-entries"
-              element={
-                <PlaceholderPage
-                  title="Journal Entries"
-                  subtitle="General journal vouchers, financial transactions, and postings."
-                  breadcrumbs={[{ label: 'Accounting' }, { label: 'Journal Entries' }]}
-                />
-              }
-            />
-            <Route
-              path="/payments"
-              element={
-                <PlaceholderPage
-                  title="Payments & Receipts"
-                  subtitle="Customer receipts, supplier disbursements, and bank allocations."
-                  breadcrumbs={[{ label: 'Accounting' }, { label: 'Payments' }]}
-                />
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <PlaceholderPage
-                  title="Financial Reports"
-                  subtitle="Trial balance, balance sheet, profit & loss, cash book, and aging reports."
-                  breadcrumbs={[{ label: 'Accounting' }, { label: 'Reports' }]}
-                />
-              }
-            />
+            <Route path="/accounting/chart-of-accounts" element={<ChartOfAccountsView />} />
+            <Route path="/accounting/journal-entries" element={<JournalEntriesView />} />
+            <Route path="/payments" element={<PaymentListView />} />
+            <Route path="/reports" element={<FinancialReportsView />} />
 
             {/* System */}
             <Route
