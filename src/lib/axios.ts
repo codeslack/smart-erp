@@ -1,52 +1,64 @@
-// src/lib/axios.ts
+import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosResponse, AxiosError } from 'axios';
+import { storage } from '@/utils/storage';
 
-import axios, { AxiosError } from 'axios';
-import type { InternalAxiosRequestConfig } from 'axios';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
-export const apiClient = axios.create({
-  baseURL: (import.meta.env.VITE_API_BASE_URL as string) || 'https://smart-erp-api.test',
-  timeout: 30000,
-  withCredentials: true, 
-  withXSRFToken: true, 
+export const apiClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
   headers: {
+    Accept: 'application/json',
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
   },
+  timeout: 30000,
 });
 
+// Request interceptor: Attach Sanctum Bearer token from localStorage
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // 1. Core Authorization Token Injection
-    const token = localStorage.getItem('erp_auth_token');
+  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    const token = storage.getToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    /* 
-      FIXED: Read the active tenant slug directly from disk storage space!
-      This breaks the circular dependency chain by removing the need to import 'store'.
-    */
-    const tenantSlug = localStorage.getItem('erp_active_tenant_slug');
-
-    if (tenantSlug && config.headers) {
-      config.headers['X-Tenant'] = tenantSlug; // Pass tenant header safely
-    }
-    
     return config;
   },
-  (error: AxiosError) => Promise.reject(error)
+  (error: unknown) => Promise.reject(error)
 );
 
+// Response interceptor: Global 401 & 403 (Tenant Required) handling
 apiClient.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    const status = error.response?.status;
-    if (status === 401) {
-      localStorage.removeItem('erp_auth_token');
-      localStorage.removeItem('erp_active_tenant_slug');
-      window.location.href = '/login';
+  (response: AxiosResponse): AxiosResponse => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError<{ code?: string; message?: string }>;
+      const status = axiosError.response?.status;
+      const data = axiosError.response?.data;
+
+      // Handle 401 Unauthorized (session expired or invalid token)
+      if (status === 401) {
+        storage.clearSession();
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+      }
+
+      // Handle 403 Forbidden with TENANT_REQUIRED
+      if (
+        status === 403 &&
+        (data?.code === 'TENANT_REQUIRED' ||
+          data?.message?.toLowerCase().includes('no tenant is assigned'))
+      ) {
+        storage.removeTenant();
+        window.dispatchEvent(new CustomEvent('auth:tenant_required'));
+
+        if (!window.location.pathname.includes('/onboarding/tenant')) {
+          window.location.href = '/onboarding/tenant';
+        }
+      }
     }
     return Promise.reject(error);
   }
 );
+
+export default apiClient;

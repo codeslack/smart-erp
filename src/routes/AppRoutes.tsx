@@ -1,138 +1,254 @@
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { ProtectedRoute } from "./ProtectedRoute";
-import { Login } from "@/features/auth";
-import { UserList } from "@/features/user-management";
-import { ModulePlaceholder } from "@/components/ModulePlaceholder"; // Load your placeholder helper
-
-import { AreaListView } from "@/features/masters/areas";
-import { BrandListView } from "@/features/masters/brands";
-import { UnitListView } from "@/features/masters/units";
-import { CategoryListView } from "@/features/masters/categories";
-import { WarehouseListPane } from "@/features/masters/warehouses";
-// import { ProductListView } from "@/features/masters/products";
-import { CustomerListPane } from "@/features/masters/customers";
-import { SupplierListPane } from "@/features/masters/suppliers";
-
-import {
-  ProductListView,
-  ProductFormModal,
-  // ProductDetailPane,
-  // VariantListPane,
-  // VariantFormModal,
-} from "@/features/masters/products";
-
-import {
-  PurchaseOrderPane,
-  PurchaseListPane,
-  GoodsReceivePane,
-  PurchaseReturnPane,
-} from "@/features/purchase";
-
-import { ChartOfAccounts, JournalEntriesPane } from "@/features/accounting";
-import { InvoicingDashboard } from "@/features/invoicing";
-import { DashboardOverview } from "@/features/dashboard";
-import NotFound from "@/components/NotFound";
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { ProtectedRoute } from './ProtectedRoute';
+import { Login } from '@/features/auth/views/Login';
+import { TenantOnboarding } from '@/features/onboarding/views/TenantOnboarding';
+import { DashboardOverview } from '@/features/dashboard/views/DashboardOverview';
+import { CustomerList } from '@/features/customers';
+import { PlaceholderPage } from '@/components/common/PlaceholderPage';
+import NotFound from '@/components/NotFound';
 
 export const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Authentication Route */}
         <Route path="/login" element={<Login />} />
 
+        {/* Tenant Onboarding / Company Registration (Accessible directly or when tenant is missing) */}
+        <Route path="/onboarding/tenant" element={<TenantOnboarding />} />
+
+        {/* Protected ERP Main Routes (Require Authentication AND an Active Tenant) */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<DashboardLayout />}>
-            {/* Real Dashboard Overview Home Map Active */}
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardOverview />} />
 
-            <Route path="/invoicing" element={<InvoicingDashboard />} />
-            <Route path="/accounting" element={<ChartOfAccounts />} />
+            {/* Master Data */}
+            <Route path="/customers" element={<CustomerList />} />
             <Route
-              path="/accounting/journals"
-              element={<JournalEntriesPane />}
+              path="/suppliers"
+              element={
+                <PlaceholderPage
+                  title="Suppliers"
+                  subtitle="Manage suppliers, vendor codes, payment terms, and opening balances."
+                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Suppliers' }]}
+                />
+              }
             />
-            <Route path="/users" element={<UserList />} />
-            {/* --- CORE MASTER MODULE SHELLS --- */}
-            <Route path="/masters/areas" element={<AreaListView />} />
-            <Route path="/masters/brands" element={<BrandListView />} />
-            <Route path="/masters/units" element={<UnitListView />} />
-            <Route path="/masters/categories" element={<CategoryListView />} />
-            <Route path="/masters/warehouses" element={<WarehouseListPane />} />
-
-            {/* Core Product Routing Map */}
-            <Route path="/masters/products" element={<ProductListView />} />
             <Route
-              path="/masters/products/create"
-              element={<ProductFormModal />}
+              path="/products"
+              element={
+                <PlaceholderPage
+                  title="Products & Inventory"
+                  subtitle="Product catalog, SKUs, pricing, categories, and inventory stock balances."
+                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Products' }]}
+                />
+              }
             />
-            {/* <Route
-              path="/masters/products/:uuid"
-              element={<ProductDetailPane />}
-            /> */}
             <Route
-              path="/masters/products/:uuid/edit"
-              element={<ProductFormModal />}
+              path="/categories"
+              element={
+                <PlaceholderPage
+                  title="Product Categories"
+                  subtitle="Hierarchical product classification and taxonomy."
+                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Categories' }]}
+                />
+              }
             />
-
-            {/* Dynamic Nested Sub-variants Mapping */}
-            {/* <Route
-              path="/masters/products/:productUuid/variants"
-              element={<VariantListPane />}
-            /> */}
-            {/* <Route
-              path="/masters/products/:productUuid/variants/create"
-              element={<VariantFormModal />}
-            /> */}
-
-            <Route path="/masters/customers" element={<CustomerListPane />} />
-            <Route path="/masters/suppliers" element={<SupplierListPane />} />
-
-            <Route path="/masters/areas" element={<ModulePlaceholder />} />
-            <Route path="/masters/customers" element={<ModulePlaceholder />} />
-            <Route path="/masters/suppliers" element={<ModulePlaceholder />} />
-            <Route path="/masters/products" element={<ModulePlaceholder />} />
-            <Route path="/masters/categories" element={<ModulePlaceholder />} />
-            <Route path="/masters/units" element={<ModulePlaceholder />} />
-            <Route path="/masters/warehouses" element={<ModulePlaceholder />} />
-
-            {/* --- CORE PURCHASE MODULE SHELLS --- */}
-            <Route path="/purchase/orders" element={<PurchaseOrderPane />} />
-            <Route path="/purchase/invoices" element={<PurchaseListPane />} />
-            <Route path="/purchase/grn" element={<GoodsReceivePane />} />
-            <Route path="/purchase/returns" element={<PurchaseReturnPane />} />
-
-            {/* --- CORE SALES MODULE SHELLS --- */}
-            <Route path="/sales/quotations" element={<ModulePlaceholder />} />
-            <Route path="/sales/orders" element={<ModulePlaceholder />} />
-            <Route path="/sales/returns" element={<ModulePlaceholder />} />
-
-            {/* --- CORE INVENTORY MODULE SHELLS --- */}
-            <Route path="/inventory/movement" element={<ModulePlaceholder />} />
-            <Route path="/inventory/transfer" element={<ModulePlaceholder />} />
             <Route
-              path="/inventory/adjustment"
-              element={<ModulePlaceholder />}
+              path="/brands"
+              element={
+                <PlaceholderPage
+                  title="Brands"
+                  subtitle="Manufacturer and brand classifications."
+                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Brands' }]}
+                />
+              }
             />
-
-            {/* --- OTHER EXTENDED REPORT SHELLS --- */}
             <Route
-              path="/reports/stock-valuation"
-              element={<ModulePlaceholder />}
+              path="/units"
+              element={
+                <PlaceholderPage
+                  title="Units of Measurement"
+                  subtitle="Base measurement units and conversion factors."
+                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Units' }]}
+                />
+              }
             />
-            <Route path="/reports/purchase" element={<ModulePlaceholder />} />
-            <Route path="/reports/sales" element={<ModulePlaceholder />} />
-            <Route path="/reports/tax" element={<ModulePlaceholder />} />
+            <Route
+              path="/warehouses"
+              element={
+                <PlaceholderPage
+                  title="Warehouses"
+                  subtitle="Storage facilities, locations, and inventory distribution hubs."
+                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Warehouses' }]}
+                />
+              }
+            />
+            <Route
+              path="/payment-terms"
+              element={
+                <PlaceholderPage
+                  title="Payment Terms"
+                  subtitle="Credit periods, due dates, and default invoicing terms."
+                  breadcrumbs={[{ label: 'Master Data' }, { label: 'Payment Terms' }]}
+                />
+              }
+            />
 
-            {/* --- ADMINISTRATION UTILITY MODULE SHELLS --- */}
-            <Route path="/admin/roles" element={<ModulePlaceholder />} />
-            <Route path="/admin/permissions" element={<ModulePlaceholder />} />
-            <Route path="/admin/audit-logs" element={<ModulePlaceholder />} />
-            <Route path="/admin/settings" element={<ModulePlaceholder />} />
+            {/* Sales */}
+            <Route
+              path="/sales-quotations"
+              element={
+                <PlaceholderPage
+                  title="Sales Quotations"
+                  subtitle="Draft, send, approve, and convert sales quotations into orders."
+                  breadcrumbs={[{ label: 'Sales' }, { label: 'Quotations' }]}
+                />
+              }
+            />
+            <Route
+              path="/sales-orders"
+              element={
+                <PlaceholderPage
+                  title="Sales Orders"
+                  subtitle="Confirmed customer orders and fulfillment queues."
+                  breadcrumbs={[{ label: 'Sales' }, { label: 'Orders' }]}
+                />
+              }
+            />
+            <Route
+              path="/sales"
+              element={
+                <PlaceholderPage
+                  title="Sales Invoices"
+                  subtitle="Customer invoices, accounting postings, and delivery confirmations."
+                  breadcrumbs={[{ label: 'Sales' }, { label: 'Invoices' }]}
+                />
+              }
+            />
+            <Route
+              path="/sales-returns"
+              element={
+                <PlaceholderPage
+                  title="Sales Returns"
+                  subtitle="Customer credit notes, item returns, and inventory restock."
+                  breadcrumbs={[{ label: 'Sales' }, { label: 'Returns' }]}
+                />
+              }
+            />
+
+            {/* Purchasing */}
+            <Route
+              path="/purchases/orders"
+              element={
+                <PlaceholderPage
+                  title="Purchase Orders"
+                  subtitle="Vendor purchase orders, approvals, and order tracking."
+                  breadcrumbs={[{ label: 'Purchasing' }, { label: 'Orders' }]}
+                />
+              }
+            />
+            <Route
+              path="/purchases/grn"
+              element={
+                <PlaceholderPage
+                  title="Goods Receipt Notes (GRN)"
+                  subtitle="Warehouse receiving receipts and physical stock intake verification."
+                  breadcrumbs={[{ label: 'Purchasing' }, { label: 'GRN' }]}
+                />
+              }
+            />
+            <Route
+              path="/purchases/bills"
+              element={
+                <PlaceholderPage
+                  title="Purchase Bills"
+                  subtitle="Supplier bills, payable matching, and accounting vouchers."
+                  breadcrumbs={[{ label: 'Purchasing' }, { label: 'Bills' }]}
+                />
+              }
+            />
+            <Route
+              path="/purchases/returns"
+              element={
+                <PlaceholderPage
+                  title="Purchase Returns"
+                  subtitle="Debit notes and vendor returns."
+                  breadcrumbs={[{ label: 'Purchasing' }, { label: 'Returns' }]}
+                />
+              }
+            />
+
+            {/* Accounting */}
+            <Route
+              path="/accounting/chart-of-accounts"
+              element={
+                <PlaceholderPage
+                  title="Chart of Accounts"
+                  subtitle="General ledger structure, account hierarchy, and financial groups."
+                  breadcrumbs={[{ label: 'Accounting' }, { label: 'Chart of Accounts' }]}
+                />
+              }
+            />
+            <Route
+              path="/accounting/journal-entries"
+              element={
+                <PlaceholderPage
+                  title="Journal Entries"
+                  subtitle="General journal vouchers, financial transactions, and postings."
+                  breadcrumbs={[{ label: 'Accounting' }, { label: 'Journal Entries' }]}
+                />
+              }
+            />
+            <Route
+              path="/payments"
+              element={
+                <PlaceholderPage
+                  title="Payments & Receipts"
+                  subtitle="Customer receipts, supplier disbursements, and bank allocations."
+                  breadcrumbs={[{ label: 'Accounting' }, { label: 'Payments' }]}
+                />
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <PlaceholderPage
+                  title="Financial Reports"
+                  subtitle="Trial balance, balance sheet, profit & loss, cash book, and aging reports."
+                  breadcrumbs={[{ label: 'Accounting' }, { label: 'Reports' }]}
+                />
+              }
+            />
+
+            {/* System */}
+            <Route
+              path="/employees"
+              element={
+                <PlaceholderPage
+                  title="Users & Access Control"
+                  subtitle="User directory, roles, and granular tenant permissions."
+                  breadcrumbs={[{ label: 'System' }, { label: 'Users & RBAC' }]}
+                />
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PlaceholderPage
+                  title="System Settings"
+                  subtitle="Organization profile, financial years, numbering schemes, and preferences."
+                  breadcrumbs={[{ label: 'System' }, { label: 'Settings' }]}
+                />
+              }
+            />
           </Route>
         </Route>
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* 404 Fallback */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

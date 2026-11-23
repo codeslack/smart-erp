@@ -1,234 +1,224 @@
-import React, { useState } from "react";
-import type { FC } from "react";
-import {
-  useFetchUserTenantsMutation,
-  useLoginWithTenantMutation,
-  setAuthSession,
-} from "@/features/auth"; // FIXED: Imported setAuthSession action
-import { useAppDispatch } from "@/store/hooks"; // FIXED: Imported your typed dispatch hook
-import {
-  Button,
-  Label,
-  TextInput,
-  Card,
-  Alert,
-  Spinner,
-  Select,
-} from "flowbite-react";
-import { useNavigate } from "react-router-dom";
-import {
-  ShieldAlert,
-  Lock,
-  Mail,
-  Building2,
-  ChevronRight,
-  LogIn,
-} from "lucide-react";
-import type { Tenant } from "../types";
-import axios from "axios";
-// Around your login inputs inside src/features/auth/views/Login.tsx:
-import { getFieldError } from '@/utils/errorMapper'; // 1. Load helper
-import { InputError } from '@/components/InputError'; // 2. Load atomic layout error banner
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Card, Button, TextInput, Label, Alert } from 'flowbite-react';
+import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff, Building2 } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useAppDispatch } from '@/app/hooks';
+import { setCredentials, setAuthLoading } from '@/features/auth/authSlice';
+import { authService } from '@/features/auth/authService';
+import { addNotification } from '@/features/notifications/notificationSlice';
+import { getErrorMessage, getValidationErrors } from '@/utils/errors';
+
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const Login: React.FC = () => {
-  const dispatch = useAppDispatch(); // FIXED: Instantiate core state dispatcher
-  const [email, setEmail] = useState("admin@erp.com");
-  const [password, setPassword] = useState("password123");
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [selectedTenantSlug, setSelectedTenantSlug] = useState("");
-  const [loginStep, setLoginStep] = useState<1 | 2>(1);
-
-  const [fetchTenants, { isLoading: isDiscovering, error: discoverError }] =
-    useFetchUserTenantsMutation();
-  const [loginWithTenant, { isLoading: isAuthenticating, error: authError }] =
-    useLoginWithTenantMutation();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleDiscoverTenants = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: 'admin@example.com',
+      password: 'password',
+    },
+  });
+
+  const onSubmit = async (values: LoginFormValues) => {
     try {
-      const response = await fetchTenants({ email, password }).unwrap();
-      if (response.data && response.data.length > 0) {
-        setTenants(response.data);
-        setSelectedTenantSlug(response.data[0].slug); // FIXED: Select first array entity fallback
-        setLoginStep(2);
-      }
-    } catch (err) {
-      console.error("Discovery cycle failure:", err);
-    }
-  };
+      setFormError(null);
+      setIsSubmitting(true);
+      dispatch(setAuthLoading(true));
 
-  const handleFinalLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      // 1. Instantly extract 'https://smart-erp-api.test' regardless of whether /api is at the end
-      const apiOrigin = new URL(import.meta.env.VITE_API_BASE_URL as string)
-        .origin;
+      const authData = await authService.login(values);
 
-      // 2. Safely initiate the cookie handshake at the absolute root of your backend domain
-      await axios.get(`${apiOrigin}/sanctum/csrf-cookie`, {
-        withCredentials: true,
-      });
-
-      const response = await loginWithTenant({
-        email,
-        password,
-        tenant: selectedTenantSlug,
-      }).unwrap();
-
-      /* 
-        FIXED: Dispatch your session variables directly upon resolving unwrap payload.
-        This completely sidesteps circular import races!
-      */
       dispatch(
-        setAuthSession({
-          token: response.token,
-          user: response.user,
-          tenantSlug: selectedTenantSlug,
-        }),
+        setCredentials({
+          user: authData.user,
+          token: authData.token,
+        })
       );
 
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("Final authorization session failed:", err);
+      dispatch(
+        addNotification({
+          type: 'success',
+          title: 'Welcome Back',
+          message: `Logged in successfully as ${authData.user.name}.`,
+        })
+      );
+
+      // Avoid redirecting back to onboarding or login
+      const rawFrom = (location.state as { from?: { pathname: string } })?.from?.pathname;
+      const destination =
+        rawFrom && !rawFrom.includes('/login') && !rawFrom.includes('/onboarding')
+          ? rawFrom
+          : '/dashboard';
+
+      navigate(destination, { replace: true });
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Invalid credentials. Please try again.');
+      const validationErrors = getValidationErrors(err);
+
+      // Check if user has no tenant assigned
+      if (message.toLowerCase().includes('no tenant is assigned')) {
+        dispatch(
+          addNotification({
+            type: 'warning',
+            title: 'Tenant Required',
+            message: 'No company is assigned to this account. Please register your company.',
+          })
+        );
+        navigate('/onboarding/tenant', { replace: true });
+        return;
+      }
+
+      if (validationErrors) {
+        const firstField = Object.keys(validationErrors)[0];
+        setFormError(validationErrors[firstField][0]);
+      } else {
+        setFormError(message);
+      }
+
+      dispatch(
+        addNotification({
+          type: 'error',
+          title: 'Authentication Failed',
+          message,
+        })
+      );
+    } finally {
+      setIsSubmitting(false);
+      dispatch(setAuthLoading(false));
     }
   };
 
-  const errorState = discoverError || authError;
-  const serverError = errorState as { data?: { message?: string } } | undefined;
-  const errorMessage: string = String(
-    serverError?.data?.message || "Invalid credentials or account mismatch.",
-  );
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
-      <Card className="w-full max-w-md border border-gray-200 font-sans shadow-xl dark:border-gray-700">
-        <div className="mb-2 flex flex-col items-center gap-2">
-          <div className="bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 rounded-full p-3">
-            <ShieldAlert size={32} aria-hidden="true" />
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        {/* Brand Header */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-white font-bold text-2xl shadow-lg shadow-primary-500/30">
+            SE
           </div>
-          <h2 className="text-center text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Smart ERP Portal
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+            Smart <span className="text-primary-600">ERP</span>
           </h2>
-          <p className="text-xs font-medium text-gray-500">
-            {loginStep === 1
-              ? "Phase 1: Verification Check"
-              : "Phase 2: Environment Selection"}
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Sign in to access your enterprise workspace
           </p>
         </div>
 
-        {errorState ? (
-          <Alert color="failure" className="text-sm font-medium">
-            <span>{errorMessage}</span>
-          </Alert>
-        ) : null}
+        {/* Login Card */}
+        <Card className="border border-gray-200 shadow-md dark:border-gray-700 dark:bg-gray-800">
+          {formError && (
+            <Alert color="failure" icon={AlertCircle} className="mb-2">
+              <span className="font-medium">Sign in error:</span> {formError}
+            </Alert>
+          )}
 
-        {loginStep === 1 && (
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={handleDiscoverTenants}
-          >
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Email Field */}
             <div>
               <div className="mb-2 block">
-                <Label>Corporate Email</Label>
+                <Label htmlFor="email">Email Address</Label>
               </div>
               <TextInput
                 id="email"
                 type="email"
+                icon={Mail}
                 placeholder="name@company.com"
-                icon={Mail as FC<React.ComponentProps<"svg">>}
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                color={getFieldError(authError, 'email') ? 'failure' : 'gray'}
+                color={errors.email ? 'failure' : 'gray'}
+                {...register('email')}
               />
-              <InputError message={getFieldError(authError, 'email')} />
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.email.message}</p>
+              )}
             </div>
+
+            {/* Password Field with Eye Toggle Icon */}
             <div>
               <div className="mb-2 block">
-                <Label>System Password</Label>
+                <Label htmlFor="password">Password</Label>
               </div>
-              <TextInput
-                id="password"
-                type="password"
-                icon={Lock as FC<React.ComponentProps<"svg">>}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <TextInput
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  icon={Lock}
+                  placeholder="••••••••"
+                  color={errors.password ? 'failure' : 'gray'}
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.password.message}</p>
+              )}
             </div>
+
+            {/* Default credentials hint */}
+            <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500 dark:bg-gray-700/50 dark:text-gray-400 border border-gray-200 dark:border-gray-600">
+              <div className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
+                Default Backend Credentials:
+              </div>
+              <div>Email: <span className="font-mono text-primary-600 dark:text-primary-400">admin@example.com</span></div>
+              <div>Password: <span className="font-mono text-primary-600 dark:text-primary-400">password</span></div>
+            </div>
+
+            {/* Submit Button */}
             <Button
               type="submit"
-              color="blue"
-              disabled={isDiscovering}
-              className="mt-2 w-full font-semibold"
+              color="primary"
+              className="w-full"
+              disabled={isSubmitting}
             >
-              {isDiscovering ? (
-                <Spinner size="sm" className="mr-2" />
-              ) : (
-                <>
-                  <ChevronRight className="mr-2 h-4 w-4" /> Verify Account
-                </>
-              )}
+              <LogIn className="mr-2 h-4 w-4" />
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
-        )}
 
-        {loginStep === 2 && (
-          <form className="flex flex-col gap-4" onSubmit={handleFinalLogin}>
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-gray-800">
-              Identity Confirmed:{" "}
-              <span className="font-bold text-gray-800 dark:text-gray-200">
-                {email}
-              </span>
-            </div>
-
-            <div>
-              <div className="mb-2 block">
-                <Label>Select Your Target Corporate Workspace</Label>
-              </div>
-              <Select
-                id="tenant-select"
-                icon={Building2 as FC<React.ComponentProps<"svg">>}
-                required
-                value={selectedTenantSlug}
-                onChange={(e) => setSelectedTenantSlug(e.target.value)}
+          {/* Tenant Onboarding Shortcut */}
+          <div className="border-t border-gray-200 pt-4 text-center dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Need to register a new organization?{' '}
+              <Link
+                to="/onboarding/tenant"
+                className="inline-flex items-center font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400"
               >
-                {tenants.map((t) => (
-                  <option key={t.id} value={t.slug}>
-                    {t.name} ({t.domain})
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="mt-2 flex gap-2">
-              <Button
-                color="gray"
-                onClick={() => setLoginStep(1)}
-                disabled={isAuthenticating}
-                className="w-1/3 font-medium"
-              >
-                Back
-              </Button>
-              <Button
-                type="submit"
-                color="blue"
-                disabled={isAuthenticating}
-                className="w-2/3 font-semibold"
-              >
-                {isAuthenticating ? (
-                  <Spinner size="sm" className="mr-2" />
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" /> Access ERP
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        )}
-      </Card>
+                <Building2 className="mr-1 h-3.5 w-3.5" />
+                Create Company Workspace
+              </Link>
+            </p>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };

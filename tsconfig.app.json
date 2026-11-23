@@ -1,5 +1,3 @@
-// filename: tsconfig.app.json
-
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
@@ -16,7 +14,6 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
-    // "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -27,6 +24,35 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": [
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/app/**/*",
+    "src/components/ui/**/*",
+    "src/components/layout/**/*",
+    "src/components/common/**/*",
+    "src/components/NotFound.tsx",
+    "src/features/auth/**/*",
+    "src/features/onboarding/**/*",
+    "src/features/dashboard/**/*",
+    "src/features/customers/**/*",
+    "src/features/suppliers/**/*",
+    "src/features/products/**/*",
+    "src/features/inventory/**/*",
+    "src/features/sales/**/*",
+    "src/features/purchases/**/*",
+    "src/features/invoices/**/*",
+    "src/features/payments/**/*",
+    "src/features/employees/**/*",
+    "src/features/reports/**/*",
+    "src/features/settings/**/*",
+    "src/features/notifications/**/*",
+    "src/features/ui/**/*",
+    "src/hooks/**/*",
+    "src/lib/**/*",
+    "src/services/**/*",
+    "src/types/**/*",
+    "src/utils/**/*",
+    "src/routes/**/*"
+  ]
 }
-

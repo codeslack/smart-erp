@@ -19,9 +19,16 @@ export interface User {
   role?: null;
 }
 
-export interface AuthResponse {
-  token: string;
+export interface LoginData {
   user: User;
+  token: string;
+  token_type: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  data: LoginData;
 }
 
 export interface AuthState {

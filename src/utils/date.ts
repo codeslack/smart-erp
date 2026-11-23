@@ -1,35 +1,28 @@
-// src/utils/date.ts
+import { format, parseISO, isValid } from 'date-fns';
 
-export const formatDate = (
-  value: string | Date | null | undefined,
-  locale = "en-IN"
-): string => {
-  if (!value) {
-    return "";
+export function formatDate(date: string | number | Date | null | undefined, pattern = 'dd MMM yyyy'): string {
+  if (!date) return '-';
+
+  try {
+    const parsed = typeof date === 'string' ? parseISO(date) : new Date(date);
+    if (!isValid(parsed)) return '-';
+    return format(parsed, pattern);
+  } catch {
+    return '-';
   }
+}
 
-  return new Date(value).toLocaleDateString(
-    locale
-  );
-};
+export function formatDateTime(date: string | number | Date | null | undefined): string {
+  return formatDate(date, 'dd MMM yyyy, hh:mm a');
+}
 
-export const formatDateTime = (
-  value: string | Date | null | undefined,
-  locale = "en-IN"
-): string => {
-  if (!value) {
-    return "";
+export function toInputDateFormat(date: string | number | Date | null | undefined): string {
+  if (!date) return '';
+  try {
+    const parsed = typeof date === 'string' ? parseISO(date) : new Date(date);
+    if (!isValid(parsed)) return '';
+    return format(parsed, 'yyyy-MM-dd');
+  } catch {
+    return '';
   }
-
-  return new Date(value).toLocaleString(
-    locale
-  );
-};
-
-export const toIsoDate = (
-  value: string | Date
-): string => {
-  return new Date(value)
-    .toISOString()
-    .split("T")[0];
-};
+}
