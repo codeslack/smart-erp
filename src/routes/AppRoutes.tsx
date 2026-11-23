@@ -9,6 +9,7 @@ import { CustomerList } from '@/features/customers';
 import { SupplierList } from '@/features/suppliers';
 import { ProductList, CategoryList } from '@/features/products';
 import { SalesList, SalesOrderList, SalesQuotationList } from '@/features/sales';
+import { PurchaseOrderList, PurchaseInvoiceList, PurchaseReturnList } from '@/features/purchases';
 import { PlaceholderPage } from '@/components/common/PlaceholderPage';
 import NotFound from '@/components/NotFound';
 
@@ -90,16 +91,10 @@ export const AppRoutes: React.FC = () => {
             />
 
             {/* Purchasing */}
-            <Route
-              path="/purchases/orders"
-              element={
-                <PlaceholderPage
-                  title="Purchase Orders"
-                  subtitle="Vendor purchase orders, approvals, and order tracking."
-                  breadcrumbs={[{ label: 'Purchasing' }, { label: 'Orders' }]}
-                />
-              }
-            />
+            <Route path="/purchases/orders" element={<PurchaseOrderList />} />
+            <Route path="/purchases" element={<Navigate to="/purchases/bills" replace />} />
+            <Route path="/purchases/bills" element={<PurchaseInvoiceList />} />
+            <Route path="/purchases/returns" element={<PurchaseReturnList />} />
             <Route
               path="/purchases/grn"
               element={
@@ -107,26 +102,6 @@ export const AppRoutes: React.FC = () => {
                   title="Goods Receipt Notes (GRN)"
                   subtitle="Warehouse receiving receipts and physical stock intake verification."
                   breadcrumbs={[{ label: 'Purchasing' }, { label: 'GRN' }]}
-                />
-              }
-            />
-            <Route
-              path="/purchases/bills"
-              element={
-                <PlaceholderPage
-                  title="Purchase Bills"
-                  subtitle="Supplier bills, payable matching, and accounting vouchers."
-                  breadcrumbs={[{ label: 'Purchasing' }, { label: 'Bills' }]}
-                />
-              }
-            />
-            <Route
-              path="/purchases/returns"
-              element={
-                <PlaceholderPage
-                  title="Purchase Returns"
-                  subtitle="Debit notes and vendor returns."
-                  breadcrumbs={[{ label: 'Purchasing' }, { label: 'Returns' }]}
                 />
               }
             />
