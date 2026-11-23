@@ -9,12 +9,13 @@ import {
   Button,
   Label,
   TextInput,
+  Select,
   Checkbox,
 } from 'flowbite-react';
 import { Loader2 } from 'lucide-react';
 import { userService } from '../userService';
 import { extractValidationErrors, getErrorMessage } from '@/utils/errors';
-import type { UserRecord, UserFormData } from '@/types/user';
+import type { UserRecord, RoleRecord, UserFormData } from '@/types/user';
 import { useAppDispatch } from '@/app/hooks';
 import { addToast } from '@/features/notifications/notificationSlice';
 
@@ -22,6 +23,7 @@ const userSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
+  role_uuid: z.string().min(1, 'Please select a user role / account type'),
   password: z.string().optional(),
   password_confirmation: z.string().optional(),
   is_active: z.boolean(),
@@ -44,6 +46,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isLoadingRoles, setIsLoadingRoles] = useState<boolean>(false);
+  const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [serverErrors, setServerErrors] = useState<Record<string, string[]>>({});
   const isEditing = Boolean(user?.uuid);
 
@@ -51,6 +55,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(userSchema),
@@ -58,18 +63,41 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       name: '',
       email: '',
       phone: '',
+      role_uuid: '',
       password: '',
       password_confirmation: '',
       is_active: true,
     },
   });
 
+  // Fetch available tenant roles
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchRoles = async () => {
+      try {
+        setIsLoadingRoles(true);
+        const fetched = await userService.getRoles();
+        setRoles(fetched);
+      } catch (err: any) {
+        console.error('Failed to load roles', err);
+      } finally {
+        setIsLoadingRoles(false);
+      }
+    };
+    fetchRoles();
+  }, [isOpen]);
+
   useEffect(() => {
     if (user && isOpen) {
+      // Find matching role uuid from user.roles
+      const userRoleName = user.roles?.[0];
+      const matchedRole = roles.find((r) => r.name === userRoleName);
+
       reset({
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
+        role_uuid: matchedRole?.uuid || '',
         password: '',
         password_confirmation: '',
         is_active: user.is_active ?? true,
@@ -80,23 +108,55 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         name: '',
         email: '',
         phone: '',
+        role_uuid: '',
         password: '',
         password_confirmation: '',
         is_active: true,
       });
       setServerErrors({});
     }
-  }, [user, isOpen, reset]);
+  }, [user, isOpen, roles, reset]);
 
   const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
       setServerErrors({});
 
+      // Client-side password rules for new users
+      if (!isEditing) {
+        if (!data.password) {
+          setError('password', { message: 'Password is required for new users' });
+          setIsSubmitting(false);
+          return;
+        }
+        if (data.password.length < 8) {
+          setError('password', { message: 'Password must be at least 8 characters' });
+          setIsSubmitting(false);
+          return;
+        }
+        if (data.password !== data.password_confirmation) {
+          setError('password_confirmation', { message: 'Password confirmation does not match' });
+          setIsSubmitting(false);
+          return;
+        }
+      } else if (data.password) {
+        if (data.password.length < 8) {
+          setError('password', { message: 'New password must be at least 8 characters' });
+          setIsSubmitting(false);
+          return;
+        }
+        if (data.password !== data.password_confirmation) {
+          setError('password_confirmation', { message: 'Password confirmation does not match' });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const payload: UserFormData = {
-        name: data.name,
-        email: data.email,
-        phone: data.phone || undefined,
+        name: data.name.trim(),
+        email: data.email.trim(),
+        phone: data.phone?.trim() || undefined,
+        role_uuids: [data.role_uuid],
         is_active: data.is_active,
       };
 
@@ -119,7 +179,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         dispatch(
           addToast({
             title: 'User Created',
-            message: `${data.name} has been invited/created.`,
+            message: `User ${data.name} created with selected role.`,
             type: 'success',
           })
         );
@@ -145,10 +205,16 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     }
   };
 
+  const roleError =
+    errors.role_uuid?.message ||
+    serverErrors.role_uuids?.[0] ||
+    serverErrors['role_uuids.0']?.[0] ||
+    serverErrors.roles?.[0];
+
   return (
     <Modal show={isOpen} onClose={onClose} size="lg">
       <ModalHeader>
-        {isEditing ? `Edit User: ${user?.name}` : 'Invite / Create New User'}
+        {isEditing ? `Edit User: ${user?.name}` : 'Create / Invite New User'}
       </ModalHeader>
       <ModalBody>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -158,7 +224,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             </Label>
             <TextInput
               id="user-name"
-              placeholder="e.g. Jane Doe"
+              placeholder="e.g. John Doe"
               className="mt-1"
               {...register('name')}
             />
@@ -178,7 +244,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               <TextInput
                 id="user-email"
                 type="email"
-                placeholder="jane@company.com"
+                placeholder="john@company.com"
                 className="mt-1"
                 {...register('email')}
               />
@@ -203,6 +269,34 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             </div>
           </div>
 
+          {/* User Role / Account Type Selector */}
+          <div>
+            <Label htmlFor="user-role-select">
+              User Type / System Role <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              id="user-role-select"
+              className="mt-1"
+              disabled={isLoadingRoles}
+              {...register('role_uuid')}
+            >
+              <option value="">
+                {isLoadingRoles ? 'Loading system roles...' : 'Select User Role / Type...'}
+              </option>
+              {roles.map((role) => (
+                <option key={role.uuid} value={role.uuid}>
+                  {role.name}
+                </option>
+              ))}
+            </Select>
+            {roleError && (
+              <p className="mt-1 text-xs text-red-600">{roleError}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Determines system authorization, tenant access privileges, and module visibility.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="user-password">
@@ -223,7 +317,9 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               )}
             </div>
             <div>
-              <Label htmlFor="user-password-confirm">Confirm Password</Label>
+              <Label htmlFor="user-password-confirm">
+                {isEditing ? 'Confirm New Password' : 'Confirm Password *'}
+              </Label>
               <TextInput
                 id="user-password-confirm"
                 type="password"
@@ -239,7 +335,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
           <div className="flex items-center gap-2 pt-2">
             <Checkbox id="is_active" {...register('is_active')} />
-            <Label htmlFor="is_active">Active Account (Allowed to log in)</Label>
+            <Label htmlFor="is_active">Active Account (Allowed to authenticate)</Label>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">

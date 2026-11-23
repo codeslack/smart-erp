@@ -8,7 +8,7 @@ import { DashboardOverview } from '@/features/dashboard/views/DashboardOverview'
 import { CustomerList } from '@/features/customers';
 import { SupplierList } from '@/features/suppliers';
 import { ProductList, CategoryList } from '@/features/products';
-import { WarehouseList, BrandList, UnitList, PaymentTermList } from '@/features/master-data';
+import { WarehouseList, BrandList, UnitList, PaymentTermList, AreaList } from '@/features/master-data';
 import { SalesList, SalesOrderList, SalesQuotationList } from '@/features/sales';
 import { PurchaseOrderList, PurchaseInvoiceList, PurchaseReturnList } from '@/features/purchases';
 import { ChartOfAccountsView, JournalEntriesView, PaymentListView, FinancialReportsView } from '@/features/accounting';
@@ -40,6 +40,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/categories" element={<CategoryList />} />
             <Route path="/brands" element={<BrandList />} />
             <Route path="/units" element={<UnitList />} />
+            <Route path="/areas" element={<AreaList />} />
             <Route path="/warehouses" element={<WarehouseList />} />
             <Route path="/payment-terms" element={<PaymentTermList />} />
 

@@ -30,8 +30,16 @@ export const userService = {
     return response.data;
   },
 
-  async getRoles(): Promise<ApiResponse<RoleRecord[]>> {
-    const response = await apiClient.get<ApiResponse<RoleRecord[]>>('/rbac/roles');
-    return response.data;
+  async getRoles(): Promise<RoleRecord[]> {
+    const response = await apiClient.get<any>('/rbac/roles', {
+      params: { per_page: 50 },
+    });
+    if (Array.isArray(response.data?.data)) {
+      return response.data.data;
+    }
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return [];
   },
 };

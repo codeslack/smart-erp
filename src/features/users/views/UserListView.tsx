@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextInput, Badge } from 'flowbite-react';
+import { Button, TextInput, Select, Badge } from 'flowbite-react';
 import { Search, RefreshCw, UserPlus, Edit2, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DataTable } from '@/components/ui/DataTable';
@@ -20,6 +20,7 @@ export const UserListView: React.FC = () => {
   const [meta, setMeta] = useState<PaginationMeta | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,6 +95,15 @@ export const UserListView: React.FC = () => {
   };
 
   const filteredUsers = users.filter((u) => {
+    // Role filter
+    if (roleFilter !== 'all') {
+      const hasRole = u.roles?.some(
+        (r) => r.toLowerCase() === roleFilter.toLowerCase()
+      );
+      if (!hasRole) return false;
+    }
+
+    // Search filter
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -102,6 +112,25 @@ export const UserListView: React.FC = () => {
       u.code.toLowerCase().includes(term)
     );
   });
+
+  const getRoleBadge = (roleName: string) => {
+    switch (roleName) {
+      case 'Administrator':
+        return <Badge key={roleName} color="purple">{roleName}</Badge>;
+      case 'Manager':
+        return <Badge key={roleName} color="indigo">{roleName}</Badge>;
+      case 'Accountant':
+        return <Badge key={roleName} color="success">{roleName}</Badge>;
+      case 'Sales Executive':
+        return <Badge key={roleName} color="warning">{roleName}</Badge>;
+      case 'Purchase Executive':
+        return <Badge key={roleName} color="info">{roleName}</Badge>;
+      case 'Warehouse Manager':
+        return <Badge key={roleName} color="cyan">{roleName}</Badge>;
+      default:
+        return <Badge key={roleName} color="gray">{roleName}</Badge>;
+    }
+  };
 
   const columns: TableColumn<UserRecord>[] = [
     {
@@ -130,15 +159,11 @@ export const UserListView: React.FC = () => {
     },
     {
       key: 'roles',
-      header: 'Assigned Roles',
+      header: 'User Role / Type',
       render: (u: UserRecord) => (
         <div className="flex flex-wrap gap-1">
           {u.roles && u.roles.length > 0 ? (
-            u.roles.map((role, idx) => (
-              <Badge key={idx} color="indigo" size="sm">
-                {role}
-              </Badge>
-            ))
+            u.roles.map((role) => getRoleBadge(role))
           ) : (
             <span className="text-xs text-gray-400">Standard User</span>
           )}
@@ -188,8 +213,8 @@ export const UserListView: React.FC = () => {
     <div className="space-y-6">
       <PageHeader
         title="Users & Access Control"
-        subtitle="Manage company staff accounts, role-based access control, and permissions."
-        breadcrumbs={[{ label: 'System' }, { label: 'Users' }]}
+        subtitle="Manage company staff accounts, role-based access control, and tenant authorizations."
+        breadcrumbs={[{ label: 'System' }, { label: 'Users & RBAC' }]}
         actions={
           <div className="flex items-center gap-2">
             <Button color="light" onClick={() => fetchUsers(currentPage)} className="flex items-center gap-2">
@@ -220,6 +245,22 @@ export const UserListView: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="w-full sm:w-48"
+              >
+                <option value="all">All User Types / Roles</option>
+                <option value="Administrator">Administrator</option>
+                <option value="Manager">Manager</option>
+                <option value="Accountant">Accountant</option>
+                <option value="Sales Executive">Sales Executive</option>
+                <option value="Purchase Executive">Purchase Executive</option>
+                <option value="Warehouse Manager">Warehouse Manager</option>
+                <option value="Viewer">Viewer</option>
+              </Select>
             </div>
           </div>
 
