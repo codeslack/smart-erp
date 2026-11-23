@@ -57,11 +57,13 @@ export function DataTable<T>({
       <div className="overflow-x-auto">
         <Table hoverable>
           <TableHead>
-            {columns.map((col) => (
-              <TableHeadCell key={col.key} className={col.className}>
-                {col.header}
-              </TableHeadCell>
-            ))}
+            <tr>
+              {columns.map((col) => (
+                <TableHeadCell key={col.key} className={col.className}>
+                  {col.header}
+                </TableHeadCell>
+              ))}
+            </tr>
           </TableHead>
           <TableBody className="divide-y divide-gray-200 dark:divide-gray-700">
             {data.map((row, idx) => (
