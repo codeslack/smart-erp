@@ -12,18 +12,18 @@ import {
   Select,
   Checkbox,
 } from 'flowbite-react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { userService } from '../userService';
 import { extractValidationErrors, getErrorMessage } from '@/utils/errors';
 import type { UserRecord, RoleRecord, UserFormData } from '@/types/user';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { addToast } from '@/features/notifications/notificationSlice';
 
 const userSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
-  role_uuid: z.string().min(1, 'Please select a user role / account type'),
+  role_uuid: z.string().optional(),
   password: z.string().optional(),
   password_confirmation: z.string().optional(),
   is_active: z.boolean(),
@@ -45,11 +45,23 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   user,
 }) => {
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector((state) => state.auth.user);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoadingRoles, setIsLoadingRoles] = useState<boolean>(false);
   const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [serverErrors, setServerErrors] = useState<Record<string, string[]>>({});
   const isEditing = Boolean(user?.uuid);
+
+  const isAdmin = Boolean(
+    currentUser?.roles?.some((r) => r.toLowerCase().includes('admin')) ||
+    currentUser?.email === 'admin@example.com'
+  );
+
+  const isSelf = Boolean(
+    user &&
+    currentUser &&
+    (user.uuid === currentUser.uuid || user.email?.toLowerCase() === currentUser.email?.toLowerCase())
+  );
 
   const {
     register,
@@ -122,8 +134,26 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       setIsSubmitting(true);
       setServerErrors({});
 
-      // Client-side password rules for new users
+      // Enforce Admin creation policy
       if (!isEditing) {
+        if (!isAdmin) {
+          dispatch(
+            addToast({
+              title: 'Action Unauthorized',
+              message: 'Only Administrators can create new users and assign roles.',
+              type: 'error',
+            })
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (!data.role_uuid) {
+          setError('role_uuid', { message: 'Please select a user role / account type' });
+          setIsSubmitting(false);
+          return;
+        }
+
         if (!data.password) {
           setError('password', { message: 'Password is required for new users' });
           setIsSubmitting(false);
@@ -156,9 +186,15 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         name: data.name.trim(),
         email: data.email.trim(),
         phone: data.phone?.trim() || undefined,
-        role_uuids: [data.role_uuid],
         is_active: data.is_active,
       };
+
+      // Assign role only if creating a new user or if an Administrator is modifying another user
+      if (!isEditing && data.role_uuid) {
+        payload.role_uuids = [data.role_uuid];
+      } else if (isEditing && isAdmin && !isSelf && data.role_uuid) {
+        payload.role_uuids = [data.role_uuid];
+      }
 
       if (data.password) {
         payload.password = data.password;
@@ -217,6 +253,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         {isEditing ? `Edit User: ${user?.name}` : 'Create / Invite New User'}
       </ModalHeader>
       <ModalBody>
+        {!isEditing && !isAdmin && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-sm text-red-700 dark:text-red-300">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Only Administrators have permission to create users and assign roles.</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="user-name">
@@ -271,13 +314,21 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
           {/* User Role / Account Type Selector */}
           <div>
-            <Label htmlFor="user-role-select">
-              User Type / System Role <span className="text-red-500">*</span>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="user-role-select">
+                User Type / System Role {!isEditing && <span className="text-red-500">*</span>}
+              </Label>
+              {isSelf && (
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Self Account
+                </span>
+              )}
+            </div>
             <Select
               id="user-role-select"
               className="mt-1"
-              disabled={isLoadingRoles}
+              disabled={isLoadingRoles || isSelf || (!isAdmin && isEditing)}
               {...register('role_uuid')}
             >
               <option value="">
@@ -292,9 +343,19 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             {roleError && (
               <p className="mt-1 text-xs text-red-600">{roleError}</p>
             )}
-            <p className="mt-1 text-xs text-gray-500">
-              Determines system authorization, tenant access privileges, and module visibility.
-            </p>
+            {isSelf ? (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                You cannot modify your own system role.
+              </p>
+            ) : !isAdmin && isEditing ? (
+              <p className="mt-1 text-xs text-gray-500">
+                Only Administrators can assign or change user roles.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-gray-500">
+                Determines system authorization, tenant access privileges, and module visibility.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -342,7 +403,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             <Button color="gray" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || (!isEditing && !isAdmin)}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

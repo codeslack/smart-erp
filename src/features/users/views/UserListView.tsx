@@ -8,7 +8,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { userService } from '../userService';
 import { UserFormModal } from '../components/UserFormModal';
 import { getErrorMessage } from '@/utils/errors';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { addToast } from '@/features/notifications/notificationSlice';
 import type { UserRecord } from '@/types/user';
 import type { PaginationMeta } from '@/types/api';
@@ -16,6 +16,11 @@ import type { TableColumn } from '@/types/common';
 
 export const UserListView: React.FC = () => {
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const isAdmin = Boolean(
+    currentUser?.roles?.some((r) => r.toLowerCase().includes('admin')) ||
+    currentUser?.email === 'admin@example.com'
+  );
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -184,28 +189,49 @@ export const UserListView: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       className: 'text-right',
-      render: (u: UserRecord) => (
-        <div className="flex justify-end gap-2">
-          <Button
-            size="xs"
-            color="light"
-            onClick={() => handleOpenEdit(u)}
-            className="flex items-center gap-1"
-          >
-            <Edit2 className="h-3 w-3" />
-            Edit
-          </Button>
-          <Button
-            size="xs"
-            color="failure"
-            onClick={() => setUserToDelete(u)}
-            className="flex items-center gap-1"
-          >
-            <Trash2 className="h-3 w-3" />
-            Delete
-          </Button>
-        </div>
-      ),
+      render: (u: UserRecord) => {
+        const isSelf = Boolean(
+          currentUser &&
+          (u.uuid === currentUser.uuid || u.email?.toLowerCase() === currentUser.email?.toLowerCase())
+        );
+
+        return (
+          <div className="flex justify-end gap-2">
+            <Button
+              size="xs"
+              color="light"
+              onClick={() => handleOpenEdit(u)}
+              className="flex items-center gap-1"
+            >
+              <Edit2 className="h-3 w-3" />
+              Edit
+            </Button>
+            {isSelf ? (
+              <span title="You cannot delete your own account">
+                <Button
+                  size="xs"
+                  color="failure"
+                  disabled={true}
+                  className="flex items-center gap-1 opacity-50 cursor-not-allowed"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Delete
+                </Button>
+              </span>
+            ) : (
+              <Button
+                size="xs"
+                color="failure"
+                onClick={() => setUserToDelete(u)}
+                className="flex items-center gap-1"
+              >
+                <Trash2 className="h-3 w-3" />
+                Delete
+              </Button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -221,10 +247,12 @@ export const UserListView: React.FC = () => {
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button onClick={handleOpenCreate} className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4 mr-1" />
-              New User
-            </Button>
+            {isAdmin && (
+              <Button onClick={handleOpenCreate} className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4 mr-1" />
+                New User
+              </Button>
+            )}
           </div>
         }
       />

@@ -25,7 +25,7 @@ export interface UserFormData {
   phone?: string;
   password?: string;
   password_confirmation?: string;
-  role_uuids: string[];
+  role_uuids?: string[];
   is_active?: boolean;
 }
 
